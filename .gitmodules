@@ -1,0 +1,3 @@
+[submodule "SadConsole"]
+	path = SadConsole
+	url = https://github.com/Thraka/SadConsole.git
