@@ -1,4 +1,5 @@
-﻿using SadConsole;
+﻿using RocketTelemetryConsole.Screens;
+using SadConsole;
 using SadConsole.Configuration;
 
 namespace RocketTelemetryConsole
@@ -14,6 +15,7 @@ namespace RocketTelemetryConsole
 
       Builder startup = new Builder()
         .IsStartingScreenFocused(false)
+        .SetStartingScreen<RootScreen>()
         .ConfigureFonts("./Fonts/Cheepicus12.font")
         ;
 
@@ -26,6 +28,8 @@ namespace RocketTelemetryConsole
     public static void Init(object? sender, SadConsole.GameHost host)
     {
       //SadConsole.Game.Instance.ToggleFullScreen();
+      SadConsole.Game.Instance.ResizeWindow(1900, 1000);
+      (SadConsole.Game.Instance.Screen as RootScreen)?.Init();
     }
   }
 }
