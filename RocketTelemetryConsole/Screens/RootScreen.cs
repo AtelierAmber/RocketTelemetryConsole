@@ -29,6 +29,10 @@ namespace RocketTelemetryConsole.Screens
       AltitudeGraph altitudeGraph = new AltitudeGraph(Surface.Width / 2, Surface.Height / 2);
       altitudeGraph.Position = new Point(Surface.Width/2, Surface.Height / 2);
       Children.Add(altitudeGraph);
+
+      GPSLocation gps = new GPSLocation(Surface.Width / 2, 3);
+      gps.Position = new Point(Surface.Width / 2, (Surface.Height / 2) - 3);
+      Children.Add(gps);
     }
 
     public override bool ProcessKeyboard(Keyboard keyboard)
