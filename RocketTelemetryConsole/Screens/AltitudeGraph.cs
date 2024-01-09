@@ -80,7 +80,7 @@ namespace RocketTelemetryConsole.Screens
         PrintXTick(GraphArea.X + 1 + (t * XTickSpacing), (uint?)TMinus[Math.Min(t * XTickInterval, TMinus.Count - 1)]);
       }
 
-      int numYTicks = Math.Min(Altitudes.Count, MaxXTicks + 1);
+      int numYTicks = Math.Min(Altitudes.Count, MaxYTicks + 1);
       int YTickSpacing = (GraphArea.Width - 1) / numYTicks;
       int YTickInterval = Altitudes.Count / numYTicks;
       for (int a = 0; a < numXTicks; ++a)
