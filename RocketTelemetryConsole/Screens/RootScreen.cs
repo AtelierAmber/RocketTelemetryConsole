@@ -33,6 +33,10 @@ namespace RocketTelemetryConsole.Screens
       GPSLocation gps = new GPSLocation(Surface.Width / 2, 3);
       gps.Position = new Point(Surface.Width / 2, (Surface.Height / 2) - 3);
       Children.Add(gps);
+
+      SpeedGraph speedGraph = new SpeedGraph(Surface.Width / 2, (Surface.Height / 4) - 1);
+      speedGraph.Position = new Point(0, Surface.Height / 2);
+      Children.Add(speedGraph);
     }
 
     public override bool ProcessKeyboard(Keyboard keyboard)
