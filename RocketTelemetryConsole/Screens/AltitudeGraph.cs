@@ -14,7 +14,7 @@ namespace RocketTelemetryConsole.Screens
     public AltitudeGraph(int width, int height) : base(width, height) 
     {
       GraphArea = new Rectangle((6, 2), (Surface.Width - 3, Surface.Height - 3));
-      altitudeRecord = AltitudeData.GetRecord();
+      altitudeRecord = AltitudeData.RecieveRecord();
     }
 
     private Tuple<List<int>, List<float>> altitudeRecord = new(new(), new());
@@ -22,23 +22,32 @@ namespace RocketTelemetryConsole.Screens
     public Rectangle GraphArea { get; private set; }
     public Rectangle GraphRanges { get; private set; }
 
+    private bool hasUpdate = true;
+
     private int MaxXTicks = 10;
     private int MaxYTicks = 5;
 
     public override void Update(TimeSpan delta)
     {
       base.Update(delta);
-      altitudeRecord = AltitudeData.GetRecord();
+      if (AltitudeData.HasUpdate)
+      {
+        altitudeRecord = AltitudeData.RecieveRecord(true);
+      }
     }
 
     public override void Render(TimeSpan delta)
     {
       base.Render(delta);
-      Surface.Clear();
 
-      RenderBorder();
-      RenderAxis();
-      RenderPointData();
+      if (hasUpdate)
+      {
+        Surface.Clear();
+        RenderBorder();
+        RenderAxis();
+        RenderPointData();
+        hasUpdate = false;
+      }
     }
 
     public void RenderBorder()

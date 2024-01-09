@@ -11,7 +11,10 @@ namespace RocketTelemetryConsole.Data
     public static float Altitude { get => currentAltitude; private set => currentAltitude = value; }
     private static float currentAltitude = 0;
 
-    public static Tuple<List<int>, List<float>> GetRecord()
+    public static bool HasUpdate => hasUpdate;
+    private static bool hasUpdate = true;
+
+    public static Tuple<List<int>, List<float>> RecieveRecord(bool consumeUpdate = false)
     {
       Tuple<List<int>, List<float>> data = new(new(),new());
       data.Item1.Add(0);
@@ -34,6 +37,11 @@ namespace RocketTelemetryConsole.Data
       data.Item2.Add(5500);
       data.Item1.Add(9);
       data.Item2.Add(5000);
+
+      if (consumeUpdate)
+      {
+        hasUpdate = false;
+      }
       return data;
     }
   }
