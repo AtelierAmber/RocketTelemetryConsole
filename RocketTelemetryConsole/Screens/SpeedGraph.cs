@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using RocketTelemetryConsole.Data;
 using SadConsole;
+using SadConsole.Renderers;
 using SadRogue.Primitives;
 
 namespace RocketTelemetryConsole.Screens
@@ -13,9 +15,10 @@ namespace RocketTelemetryConsole.Screens
     public SpeedGraph(int width, int height) : base(width, height)
     {
       GraphArea = new Rectangle((6, 2), (Surface.Width - 3, Surface.Height - 3));
+      SpeedData.CreateDummyData();
     }
 
-    private Tuple<List<int>, List<float>> speedRecord = new(new(), new());
+    private Tuple<List<float>, List<float>> speedRecord = new(new(), new());
 
     public Rectangle GraphArea { get; private set; }
     public Rectangle GraphRanges { get; private set; }
@@ -28,10 +31,7 @@ namespace RocketTelemetryConsole.Screens
     public override void Update(TimeSpan delta)
     {
       base.Update(delta);
-      //if (AltitudeData.HasUpdate)
-      {
-        //speedRecord = AltitudeData.RecieveRecord(true);
-      }
+      speedRecord = SpeedData.SpeedRecord;
     }
 
     public override void Render(TimeSpan delta)
@@ -42,8 +42,8 @@ namespace RocketTelemetryConsole.Screens
       {
         Surface.Clear();
         RenderBorder();
-        //RenderAxis();
-        //RenderPointData();
+        RenderAxis();
+        RenderPointData();
         hasUpdate = false;
       }
     }
@@ -110,12 +110,12 @@ namespace RocketTelemetryConsole.Screens
 
     private Point MapPointToGraph(float a, float t)
     {
-      int x = (int)((float)(GraphArea.X + 1) + (float)(t - GraphRanges.X) *
+      int x = (int)((float)(GraphArea.X) + (float)(t - GraphRanges.X) *
                     (float)(GraphArea.MaxExtentX - GraphArea.X) /
-                    (float)((GraphRanges.MaxExtentX + 1) - GraphRanges.X));
-      int y = (int)((float)(GraphArea.MaxExtentY + 1) + (float)(a - GraphRanges.Y) *
+                    (float)((GraphRanges.MaxExtentX) - GraphRanges.X));
+      int y = (int)((float)(GraphArea.MaxExtentY) + (float)(a - GraphRanges.Y) *
                     (float)(GraphArea.Y - GraphArea.MaxExtentY) /
-                    (float)((GraphRanges.MaxExtentY + 1) - GraphRanges.Y));
+                    (float)((GraphRanges.MaxExtentY) - GraphRanges.Y));
 
       Point graphPoint = new Point(x, y);
       return graphPoint;
