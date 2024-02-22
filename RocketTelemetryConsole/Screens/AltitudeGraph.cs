@@ -1,5 +1,4 @@
 ﻿using MonoGame.Extended;
-using MonoGame.Extended.BitmapFonts;
 using RocketTelemetryConsole.Data;
 using SadConsole;
 using SadConsole.Input;
@@ -22,6 +21,8 @@ namespace RocketTelemetryConsole.Screens
     private Tuple<List<int>, List<float>> altitudeRecord = new(new(), new());
 
     public Rectangle GraphArea { get; private set; }
+    public float[] XAxis;
+    public int[] YAxis;
     public Rectangle GraphRanges { get; private set; }
 
     private bool hasUpdate = true;
@@ -79,31 +80,61 @@ namespace RocketTelemetryConsole.Screens
       int numXTicks = (int)MathF.Ceiling(fullXTicksNum / MathF.Max(1.0f, (xDivisorCount * xScalar)));
       float minX = TMinus.First();
       float maxX = minX + (numXTicks * MathF.Max(1.0f, xDivisorCount * xScalar) * XGranularity);
+      XAxis = new float[GraphArea.Width];
 
       float fullYTicksNum = ((Altitudes.Max() - Altitudes.Min()) / YGranularity);
       float yScalar = 2.0f;
       int yDivisorCount = Utils.Math.DivisorCount(fullYTicksNum, yScalar, MaxYTicks);
       int numYTicks = (int)MathF.Ceiling(fullYTicksNum / MathF.Max(1.0f, (yDivisorCount * yScalar)));
-      float minY = Altitudes.Min();
+      float minY = ((int)(Altitudes.Min() / YGranularity)) * YGranularity;
       float maxY = minY + (numYTicks * MathF.Max(1.0f, yDivisorCount * yScalar) * YGranularity);
+      YAxis = new int[GraphArea.Height];
 
       GraphRanges = new Rectangle(((int)minX, (int)minY), ((int)maxX, (int)maxY));
 
       {
         float XTickSpacing = (GraphArea.MaxExtentX - GraphArea.MinExtentX) / (float)numXTicks;
         float XTickInterval = MathF.Max(1.0f, xDivisorCount * xScalar) * XGranularity;
+        int prevXTick = (int)minX;
+        int prevXLoc = GraphArea.X;
         for (int t = 0; t <= numXTicks; ++t)
         {
-          PrintXTick(GraphArea.X + (int)MathF.Round(t * XTickSpacing), (uint?)Math.Min(minX + (t * XTickInterval), maxX));
+          int xTickVal = (int)Math.Min(minX + (t * XTickInterval), maxX);
+          int xTickLoc = (int)MathF.Round(GraphArea.X + (t * XTickSpacing));
+          PrintXTick(xTickLoc, (uint?)xTickVal);
+          if (t != 0)
+          {
+            float xTickInterinterval = (float)(xTickVal - prevXTick) / (float)(prevXLoc - xTickLoc);
+            for (int x = prevXLoc; x <= xTickLoc; ++x)
+            {
+              XAxis[x - GraphArea.MinExtentX] = MathF.Round(prevXTick - ((x - (prevXLoc)) * xTickInterinterval), 1);
+            }
+            prevXTick = xTickVal;
+            prevXLoc = xTickLoc;
+          }
         }
       }
 
       {
         float YTickSpacing = (GraphArea.MaxExtentY - GraphArea.MinExtentY) / (float)numYTicks; 
         float YTickInterval = MathF.Max(1.0f, yDivisorCount * yScalar) * YGranularity;
+        int prevYTick = (int)minY;
+        int prevYLoc = GraphArea.MaxExtentY;
         for (int a = 0; a <= numYTicks; ++a)
         {
-          PrintYTick((int)MathF.Round(GraphArea.MaxExtentY - (a * YTickSpacing)), (uint?)Math.Min(minY + (a * YTickInterval), maxY));
+          int yTickVal = (int)Math.Min(minY + (a * YTickInterval), maxY);
+          int yTickLoc = (int)MathF.Round(GraphArea.MaxExtentY - (a * YTickSpacing));
+          PrintYTick(yTickLoc, (uint?)yTickVal);
+          if (a != 0)
+          {
+            float yTickInterinterval = (float)(yTickVal - prevYTick) / (float)(prevYLoc - yTickLoc);
+            for(int y = prevYLoc; y >= yTickLoc; --y)
+            {
+              YAxis[y - GraphArea.MinExtentY] = (int)MathF.Round(prevYTick - ((y - (prevYLoc)) * yTickInterinterval));
+            }
+            prevYTick = yTickVal;
+            prevYLoc = yTickLoc;
+          }
         }
       }
     }
@@ -149,23 +180,26 @@ namespace RocketTelemetryConsole.Screens
       return graphPoint;
     }
 
-    private Point MapCellToValues(Point cell)
+    private MXna.Vector2 MapCellToValues(Point cell)
     {
       float minXFrom = GraphArea.X;
       float maxXFrom = GraphArea.MaxExtentX;
       float minXTo = GraphRanges.X;
       float maxXTo = GraphRanges.MaxExtentX;
 
-      int x = (int)((((cell.X - minXFrom) / (maxXFrom - minXFrom)) * (maxXTo - minXTo)) + minXTo);
+      //int x = (int)((((cell.X - minXFrom) / (maxXFrom - minXFrom)) * (maxXTo - minXTo)) + minXTo);
+      float x = XAxis[cell.X - GraphArea.MinExtentX];
 
       float minYFrom = GraphArea.MaxExtentY;
       float maxYFrom = GraphArea.Y;
       float minYTo = GraphRanges.Y;
       float maxYTo = GraphRanges.MaxExtentY;
 
-      int y = (int)MathF.Round((((cell.Y - minYFrom) / (maxYFrom - minYFrom)) * (maxYTo - minYTo)) + minYTo);
+      //int y = (int)MathF.Round((((cell.Y - minYFrom) / (maxYFrom - minYFrom)) * (maxYTo - minYTo)) + minYTo);
 
-      Point graphPoint = new Point(x, y);
+      int y = YAxis[cell.Y - GraphArea.MinExtentY];
+
+      MXna.Vector2 graphPoint = new(x, y);
       return graphPoint;
     }
 
@@ -256,10 +290,10 @@ namespace RocketTelemetryConsole.Screens
       mouseScreenPosition = state.SurfacePixelPosition;
     }
 
-    public void RenderMouseCoordinates(MouseScreenObjectState state, Point value)
+    public void RenderMouseCoordinates(MouseScreenObjectState state, MXna.Vector2 value)
     {
       if (!hovering) return;
-      Point printLoc = new(state.SurfaceCellPosition.X +1, state.SurfaceCellPosition.Y - 1);
+      Point printLoc = new(state.SurfaceCellPosition.X + 1, state.SurfaceCellPosition.Y - 1);
       (state.ScreenObject as ScreenSurface)?.Print(printLoc.X, printLoc.Y, "(" + value.X + ", " + value.Y + ")");
     }
 
