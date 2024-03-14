@@ -21,7 +21,7 @@ namespace RocketTelemetryConsole.Screens
 
       Resize(width, height, true);
 
-      LogScreen logScreen = new LogScreen(Surface.Width / 2, Surface.Height / 4);
+      LogScreen logScreen = LogScreen.Logger.Construct(Surface.Width / 2, Surface.Height / 4);
       logScreen.Position = new Point(0, (Surface.Height/4)*3);
       logScreen.IsFocused = true;
       Children.Add(logScreen);

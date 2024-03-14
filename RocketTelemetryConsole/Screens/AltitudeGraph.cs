@@ -16,6 +16,7 @@ namespace RocketTelemetryConsole.Screens
       GraphArea = new((7, 2), (Surface.Width - 3, Surface.Height - 4));
       altitudeRecord = AltitudeData.RecieveRecord();
       mouseHandler = new AltitudeGraphMouseHandler(this, GraphArea.X, GraphArea.Y);
+      graphLineRenderer = new AltitudeGraphLineRenderer(this);
     }
 
     private Tuple<List<int>, List<float>> altitudeRecord = new(new(), new());
@@ -33,6 +34,7 @@ namespace RocketTelemetryConsole.Screens
     private float XGranularity = 1.0f;
 
     private AltitudeGraphMouseHandler mouseHandler;
+    private AltitudeGraphLineRenderer graphLineRenderer;
 
     public override void Update(TimeSpan delta)
     {
@@ -208,14 +210,18 @@ namespace RocketTelemetryConsole.Screens
       var TMinus = altitudeRecord.Item1;
       var Altitudes = altitudeRecord.Item2;
 
+      graphLineRenderer.PreparePointData();
       for (int i = 0; i < TMinus.Count; ++i)
       {
         float a = Altitudes[i];
         float t = TMinus[i];
         Point point = MapPointToGraph(a, t);
 
+        graphLineRenderer.AddPointData(point, this);
+
         Surface.SetGlyph(point.X, point.Y, 249);
       }
+      graphLineRenderer.FinallizePointData();
     }
 
     // Mouse Handler
@@ -239,6 +245,90 @@ namespace RocketTelemetryConsole.Screens
       hasUpdate = true;
       mouseHandler.HandleMove(state);
       mouseHandler.RenderMouseCoordinates(state, MapCellToValues(state.SurfaceCellPosition));
+    }
+  }
+
+  class AltitudeGraphLineRenderer : IRenderStep
+  {
+    private bool prepared = false;
+
+    private List<MXna.Vector2> pointData = new();
+
+    public string Name => "AltitudeGraphLineRenderer";
+
+    public uint SortOrder { get; set; } = 80;
+
+    public AltitudeGraphLineRenderer(ScreenSurface surface)
+    {
+      surface.Renderer!.Steps.Add(this);
+      surface.Renderer!.Steps.Sort(RenderStepComparer.Instance);
+    }
+    private MXna.Vector2 CellToScreen(Point cell, ScreenSurface hoverSurface)
+    {
+      Point pixelLoc = (cell - hoverSurface.ViewPosition)
+        .SurfaceLocationToPixel(hoverSurface.FontSize.X, hoverSurface.FontSize.Y) + (hoverSurface.FontSize / 2);
+      return new(pixelLoc.X, pixelLoc.Y);
+    }
+
+
+    // Prepares the point data for updates
+    public void PreparePointData()
+    {
+      pointData.Clear();
+      prepared = true;
+    }
+
+    public void AddPointData(Point cell, ScreenSurface surface)
+    {
+      if (!prepared)
+      {
+        LogScreen.Logger.Warn("Trying to add point data without preparing point data");
+        return;
+      }
+      pointData.Add(CellToScreen(cell, surface));
+    }
+
+    public void FinallizePointData()
+    {
+      prepared = false;
+    }
+
+    public void RenderOverlay(ScreenSurfaceRenderer renderer, IScreenSurface surface)
+    {
+      if (prepared) return;
+
+      for(int i = 1; i < pointData.Count; ++i)
+      {
+        SadConsole.Host.Global.SharedSpriteBatch.DrawLine(
+        pointData[i-1],
+        pointData[i],
+        MXna.Color.WhiteSmoke);
+      }
+    }
+
+    public bool Refresh(IRenderer renderer, IScreenSurface screenObject, bool backingTextureChanged, bool isForced)
+    {
+      return true; // Return true to make sure Composing will be called
+    }
+
+    public void Composing(IRenderer renderer, IScreenSurface screenObject) =>
+      RenderOverlay((SadConsole.Renderers.ScreenSurfaceRenderer)renderer!, screenObject);
+
+    public void Dispose()
+    {
+    }
+
+    public void Render(IRenderer renderer, IScreenSurface screenObject)
+    {
+    }
+
+    public void Reset()
+    {
+    }
+
+    public void SetData(object data)
+    {
+      throw new NotImplementedException();
     }
   }
 
