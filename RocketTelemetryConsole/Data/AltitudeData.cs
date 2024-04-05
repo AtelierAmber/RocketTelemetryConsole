@@ -11,38 +11,22 @@ namespace RocketTelemetryConsole.Data
     public static float Altitude { get => currentAltitude; private set => currentAltitude = value; }
     private static float currentAltitude = 0;
 
-    public static bool HasUpdate => hasUpdate;
-    private static bool hasUpdate = true;
+    private static Tuple<List<float>, List<float>> altitudeRecords = new(new(), new());
 
-    public static Tuple<List<int>, List<float>> RecieveRecord(bool consumeUpdate = false)
+    public static event EventHandler<Tuple<List<float>, List<float>>>? OnAltitudeRecordChanged;
+
+    public static void PublishRecord(float tminus, float altitude)
     {
-      Tuple<List<int>, List<float>> data = new(new(),new());
-      data.Item1.Add(0);
-      data.Item2.Add(5000);
-      data.Item1.Add(1);
-      data.Item2.Add(6000);
-      data.Item1.Add(2);
-      data.Item2.Add(7000);
-      data.Item1.Add(3);
-      data.Item2.Add(8000);
-      data.Item1.Add(4);
-      data.Item2.Add(9000);
-      data.Item1.Add(5);
-      data.Item2.Add(8000);
-      data.Item1.Add(6);
-      data.Item2.Add(6500);
-      data.Item1.Add(7);
-      data.Item2.Add(6000);
-      data.Item1.Add(8);
-      data.Item2.Add(5500);
-      data.Item1.Add(9);
-      data.Item2.Add(5000);
+      currentAltitude = altitude;
+      altitudeRecords.Item1.Add(tminus);
+      altitudeRecords.Item2.Add(altitude);
 
-      if (consumeUpdate)
-      {
-        hasUpdate = false;
-      }
-      return data;
+      OnAltitudeRecordChanged?.Invoke(null, altitudeRecords);
+    }
+
+    public static Tuple<List<float>, List<float>> GetFullRecord()
+    {
+      return altitudeRecords;
     }
   }
 }

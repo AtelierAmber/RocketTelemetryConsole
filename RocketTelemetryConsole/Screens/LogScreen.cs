@@ -28,7 +28,7 @@ namespace RocketTelemetryConsole.Screens
     private static bool constructed = false;
     private List<KeyValuePair<Color, string>> bufferLog = new();
 
-    private LogScreen() : base(0, 0) { constructed = false; }
+    private LogScreen() : base(1, 1) { constructed = false; }
 
     public LogScreen Construct(int width, int height) 
     {

@@ -14,12 +14,14 @@ namespace RocketTelemetryConsole.Screens
     public AltitudeGraph(int width, int height) : base(width, height) 
     {
       GraphArea = new((7, 2), (Surface.Width - 3, Surface.Height - 4));
-      altitudeRecord = AltitudeData.RecieveRecord();
+      altitudeRecord = AltitudeData.GetFullRecord();
       mouseHandler = new AltitudeGraphMouseHandler(this, GraphArea.X, GraphArea.Y);
       graphLineRenderer = new AltitudeGraphLineRenderer(this);
+
+      AltitudeData.OnAltitudeRecordChanged += UpdateAltitudeData;
     }
 
-    private Tuple<List<int>, List<float>> altitudeRecord = new(new(), new());
+    private Tuple<List<float>, List<float>> altitudeRecord = new(new(), new());
 
     public Rectangle GraphArea { get; private set; }
     public float[] XAxis;
@@ -29,20 +31,17 @@ namespace RocketTelemetryConsole.Screens
     private bool hasUpdate = true;
 
     private int MaxXTicks = 10;
-    private int MaxYTicks = 5;
+    private int MaxYTicks = 8;
     private float YGranularity = 500.0f;
     private float XGranularity = 1.0f;
 
     private AltitudeGraphMouseHandler mouseHandler;
     private AltitudeGraphLineRenderer graphLineRenderer;
 
-    public override void Update(TimeSpan delta)
+    private void UpdateAltitudeData(object? sender, Tuple<List<float>, List<float>> records)
     {
-      base.Update(delta);
-      if (AltitudeData.HasUpdate)
-      {
-        altitudeRecord = AltitudeData.RecieveRecord(true);
-      }
+      altitudeRecord = records;
+      hasUpdate = true;
     }
 
     public override void Render(TimeSpan delta)
@@ -73,23 +72,49 @@ namespace RocketTelemetryConsole.Screens
 
       var TMinus = altitudeRecord.Item1;
       var Altitudes = altitudeRecord.Item2;
-       
-      //TODO: Move this to a subscribable onAltitudeDataUpdated delegate
 
-      float fullXTicksNum = ((TMinus.Last() - TMinus.First()) / XGranularity);
-      float xScalar = 2.0f;
-      int xDivisorCount = Utils.Math.DivisorCount(fullXTicksNum, xScalar, MaxXTicks);
-      int numXTicks = (int)MathF.Ceiling(fullXTicksNum / MathF.Max(1.0f, (xDivisorCount * xScalar)));
-      float minX = TMinus.First();
-      float maxX = minX + (numXTicks * MathF.Max(1.0f, xDivisorCount * xScalar) * XGranularity);
+      float xScalar, minX, maxX;
+      int xDivisorCount, numXTicks;
+
+      if (TMinus.Count <= 0)
+      {
+        xScalar = 2.0f;
+        xDivisorCount = 0;
+        numXTicks = 1;
+        minX = 0;
+        maxX = minX + (numXTicks * XGranularity);
+      }
+      else
+      {
+        float fullXTicksNum = ((TMinus.Last() - TMinus.First()) / XGranularity);
+        xScalar = 2.0f;
+        xDivisorCount = Utils.Math.DivisorCount(fullXTicksNum, xScalar, MaxXTicks);
+        numXTicks = (int)MathF.Ceiling(fullXTicksNum / MathF.Max(1.0f, (xDivisorCount * xScalar)));
+        minX = TMinus.First();
+        maxX = minX + (numXTicks * MathF.Max(1.0f, xDivisorCount * xScalar) * XGranularity);
+      }
       XAxis = new float[GraphArea.Width];
 
-      float fullYTicksNum = ((Altitudes.Max() - Altitudes.Min()) / YGranularity);
-      float yScalar = 2.0f;
-      int yDivisorCount = Utils.Math.DivisorCount(fullYTicksNum, yScalar, MaxYTicks);
-      int numYTicks = (int)MathF.Ceiling(fullYTicksNum / MathF.Max(1.0f, (yDivisorCount * yScalar)));
-      float minY = ((int)(Altitudes.Min() / YGranularity)) * YGranularity;
-      float maxY = minY + (numYTicks * MathF.Max(1.0f, yDivisorCount * yScalar) * YGranularity);
+      float yScalar, minY, maxY;
+      int yDivisorCount, numYTicks;
+
+      if (Altitudes.Count <= 0)
+      {
+        yScalar = 2.0f;
+        yDivisorCount = 0;
+        numYTicks = 1;
+        minY = 0;
+        maxY = minY + (numYTicks * YGranularity);
+      }
+      else
+      {
+        minY = ((int)(Altitudes.Min() / YGranularity)) * YGranularity;
+        float fullYTicksNum = ((Altitudes.Max() - minY) / YGranularity);
+        yScalar = 2.0f;
+        yDivisorCount = Utils.Math.DivisorCount(fullYTicksNum, yScalar, MaxYTicks);
+        numYTicks = (int)MathF.Ceiling(fullYTicksNum / MathF.Max(1.0f, (yDivisorCount * yScalar)));
+        maxY = minY + (numYTicks * MathF.Max(1.0f, yDivisorCount * yScalar) * YGranularity);
+      }
       YAxis = new int[GraphArea.Height];
 
       GraphRanges = new Rectangle(((int)minX, (int)minY), ((int)maxX, (int)maxY));
@@ -189,15 +214,12 @@ namespace RocketTelemetryConsole.Screens
       float minXTo = GraphRanges.X;
       float maxXTo = GraphRanges.MaxExtentX;
 
-      //int x = (int)((((cell.X - minXFrom) / (maxXFrom - minXFrom)) * (maxXTo - minXTo)) + minXTo);
       float x = XAxis[cell.X - GraphArea.MinExtentX];
 
       float minYFrom = GraphArea.MaxExtentY;
       float maxYFrom = GraphArea.Y;
       float minYTo = GraphRanges.Y;
       float maxYTo = GraphRanges.MaxExtentY;
-
-      //int y = (int)MathF.Round((((cell.Y - minYFrom) / (maxYFrom - minYFrom)) * (maxYTo - minYTo)) + minYTo);
 
       int y = YAxis[cell.Y - GraphArea.MinExtentY];
 
@@ -207,14 +229,15 @@ namespace RocketTelemetryConsole.Screens
 
     private void RenderPointData()
     {
+      graphLineRenderer.PreparePointData();
+
       var TMinus = altitudeRecord.Item1;
       var Altitudes = altitudeRecord.Item2;
 
-      graphLineRenderer.PreparePointData();
       for (int i = 0; i < TMinus.Count; ++i)
       {
-        float a = Altitudes[i];
         float t = TMinus[i];
+        float a = Altitudes[i];
         Point point = MapPointToGraph(a, t);
 
         graphLineRenderer.AddPointData(point, this);
