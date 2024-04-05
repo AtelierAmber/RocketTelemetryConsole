@@ -30,7 +30,9 @@ namespace RocketTelemetryConsole.Data
       PublishRecord(8, 30);
       PublishRecord(8.5f, 20);
       PublishRecord(9.5f, 0);
-      PublishRecord(10.5f, -20);
+      PublishRecord(10.0f, -20);
+      PublishRecord(10.5f, -40);
+      PublishRecord(11.0f, -20);
       PublishRecord(11.5f, -12);
       PublishRecord(12.5f, -13);
       PublishRecord(13.5f, -12);
